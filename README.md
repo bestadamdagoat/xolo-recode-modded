@@ -1,4 +1,4 @@
-# xolo-modded
+# xolo-recode-modded
 A fork of Xolo's UGC sniper recode, but with added mods. I will try to update this repository as frequently as possible, but you'll want to visit the main repository to get the latest updates.
 
 ## Current Mods:
