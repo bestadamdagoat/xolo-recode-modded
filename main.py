@@ -10,6 +10,7 @@ class sniper:
         with open('config.json', 'r') as file: 
             content = json.load(file)
             self.items = content['items']
+            assert len(self.items) != 0, "Please provide atleast one item id"
             self.globalPrice = content["global_max_price"]
             self.waitTime = content["antiratelimit"]['v1_wait_time']
             self.v2threads = content["searcherv2_threads"]
@@ -17,6 +18,7 @@ class sniper:
             self.v2_safe_multiplier = content["antiratelimit"]["v2_safe_multiplier"]
             self.auto = content['autosearch']
             self.key = content["auto_search_key"]
+            self.webhook = content["webhook"]
         self.errorLogs = []
         self.buyLogs = []
         self.searchLogs = []
@@ -28,7 +30,10 @@ class sniper:
         self.found = []
         self.enabledAuto = False
 
-        
+    async def send_webhook(self, embed):
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(family=socket.AF_INET,verify_ssl=False)) as session:
+            await session.post(self.webhook, json=embed)
+
     async def setup_accounts(self):
         with open('config.json', 'r') as file: 
             content = json.load(file)
@@ -77,6 +82,33 @@ class sniper:
                     resp = await response.json()
                     if not resp.get("purchased"):
                         self.errorLogs.append(f"[{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}] Failed to buy item {info['item_id']}, reason: {resp.get('errorMessage')}")
+                        json_payload = {
+                            "embeds": [
+                                {
+                                "title": "Failed To Buy Item",
+                                "url": f"https://www.roblox.com/catalog/{info['item_id']}/",
+                                "color": 16711680,
+                                "fields": [
+                                    {
+                                     "name": "Price",
+                                     "value": info['price'],
+                                     "inline": True
+                                    },
+                                    {
+                                     "name": "Buyer",
+                                     "value": self.account['user_id'],
+                                     "inline": True
+                                    },
+                                    {
+                                     "name": "Error",
+                                     "value": resp.get('errorMessage'),
+                                     "inline": True
+                                    }
+                                ]
+                                }
+                            ],
+                            }
+                        asyncio.create_task(self.send_webhook(json_payload))
                         if resp.get("errorMessage", 0) == "QuantityExhausted":
                             self.items.remove(info['item_id'])
                             return
@@ -85,11 +117,60 @@ class sniper:
                             return
                         continue
                     self.buyLogs.append(f"[{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}] Bought item {info['item_id']}")
+                    json_payload = {
+                        "embeds": [
+                            {
+                            "title": "Sniped Item",
+                            "url": f"https://www.roblox.com/catalog/{info['item_id']}/",
+                            "color": 2096896,
+                            "fields": [
+                                {
+                                 "name": "Price",
+                                 "value": info['price'],
+                                 "inline": True
+                                },
+                                {
+                                 "name": "Buyer",
+                                 "value": self.account['user_id'],
+                                 "inline": True
+                                }
+                            ]
+                            }
+                        ],
+                        }
+                    asyncio.create_task(self.send_webhook(json_payload))
                     errors += 1
                     if errors == 10:
                         return
                 else:
                     self.errorLogs.append(f"[{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}] Failed to buy item {info['item_id']}")
+                    json_payload = {
+                        "embeds": [
+                            {
+                            "title": "Failed To Buy Item",
+                            "url": f"https://www.roblox.com/catalog/{info['item_id']}/",
+                            "color": 16711680,
+                            "fields": [
+                                {
+                                 "name": "Price",
+                                 "value": info['price'],
+                                 "inline": True
+                                },
+                                {
+                                 "name": "Buyer",
+                                 "value": self.account['user_id'],
+                                 "inline": True
+                                },
+                                {
+                                 "name": "Error",
+                                 "value": "Server returned status code " + str(response.status),
+                                 "inline": True
+                                }
+                            ]
+                            }
+                        ],
+                        }
+                    asyncio.create_task(self.send_webhook(json_payload))
                     errors += 1
                     if errors == 10:
                         return

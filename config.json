@@ -1,4 +1,5 @@
 {
+    "webhook": "",
     "global_max_price": 0,
     "searcherv2_threads": 1,
     "autosearch": true,
